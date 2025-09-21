@@ -78,11 +78,11 @@ app.post('/api/add-link', (req, res) => {
 });
 
 // Corrected path to serve static files
-app.use(express.static(path.join(__dirname, '../../public')));
+app.use(express.static(path.join(__dirname, '../public')));
 
 // Fallback for all other routes to serve index.html
-app.get(/\/.*/, (req, res) => {
-    res.sendFile(path.join(__dirname, '../../public/index.html'));
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/index.html'));
 });
 
 // Start the server
