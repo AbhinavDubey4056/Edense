@@ -3,79 +3,89 @@ const cors = require('cors');
 const path = require('path');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
-// Middleware
+// In-memory data for links
+const linkData = {
+    "AIML": [{
+        title: "Introduction to AI",
+        description: "A comprehensive guide to the basics of Artificial Intelligence.",
+        url: "https://example.com/ai-intro"
+    }, {
+        title: "Machine Learning Concepts",
+        description: "Learn fundamental machine learning algorithms and concepts.",
+        url: "https://example.com/ml-concepts"
+    }],
+    "Cybersecurity": [{
+        title: "Network Security Fundamentals",
+        description: "An overview of network security principles and practices.",
+        url: "https://example.com/network-security"
+    }, {
+        title: "Ethical Hacking Tutorial",
+        description: "A beginner's guide to ethical hacking.",
+        url: "https://example.com/ethical-hacking"
+    }],
+    "Web Development": [{
+        title: "HTML & CSS Crash Course",
+        description: "Get started with the building blocks of the web.",
+        url: "https://example.com/html-css"
+    }]
+};
+
+// Middleware to parse JSON
 app.use(cors());
 app.use(express.json());
 
-// In-memory "database" to store links
-const linkData = {
-    'aiml': {
-        name: 'AI & Machine Learning',
-        links: [
-            { title: 'Coursera ML Course by Andrew Ng', url: 'https://www.coursera.org/learn/machine-learning' },
-            { title: 'Sentdex - Python for ML Tutorials', url: 'https://www.youtube.com/user/sentdex' },
-            { title: 'Hugging Face for NLP', url: 'https://huggingface.co/' }
-        ]
-    },
-    'cybersec': {
-        name: 'Cybersecurity',
-        links: [
-            { title: 'TryHackMe - Learn Penetration Testing', url: 'https://tryhackme.com/' },
-            { title: 'TCM Security - Practical Ethical Hacking', url: 'https://www.youtube.com/c/TCMSecurity' },
-            { title: 'OWASP Top 10', url: 'https://owasp.org/www-project-top-ten/' }
-        ]
-    },
-    'webdev': {
-        name: 'Web Development',
-        links: [
-            { title: 'MDN Web Docs', url: 'https://developer.mozilla.org/en-US/docs/Web' },
-            { title: 'The Odin Project', url: 'https://www.theodinproject.com/' },
-            { title: 'Tailwind CSS Documentation', url: 'https://tailwindcss.com/docs' }
-        ]
-    },
-    'pytorch': {
-        name: 'Pytorch',
-        links: [
-            {title: 'Free Course', url: 'https://www.youtube.com/watch?v=V_xro1bcAuA&t=17175s'}
-        ]
-    }
-};
-
-// Serve static files from the 'public' directory
-// This must be placed before all other routes.
-app.use(express.static(path.join(__dirname, '../public')));
-
-// API Endpoint to get all domains and links
+// API endpoint to get all domains
 app.get('/api/domains', (req, res) => {
-    res.json(linkData);
+    res.json(Object.keys(linkData));
 });
 
-// API Endpoint to add a new link (for admin use)
+// API endpoint to get links for a specific domain
+app.get('/api/links/:domain', (req, res) => {
+    const {
+        domain
+    } = req.params;
+    const links = linkData[domain] || [];
+    res.json(links);
+});
+
+// API endpoint to add new link (for admin use)
 app.post('/api/add-link', (req, res) => {
-    const { domain, title, url } = req.body;
-
-    if (!linkData[domain]) {
-        return res.status(404).json({ error: 'Domain not found.' });
+    const {
+        domain,
+        title,
+        description,
+        url
+    } = req.body;
+    if (domain && title && description && url) {
+        if (!linkData[domain]) {
+            linkData[domain] = [];
+        }
+        linkData[domain].push({
+            title,
+            description,
+            url
+        });
+        res.status(200).json({
+            message: 'Link added successfully!'
+        });
+    } else {
+        res.status(400).json({
+            message: 'Missing required fields.'
+        });
     }
-
-    if (!title || !url) {
-        return res.status(400).json({ error: 'Title and URL are required.' });
-    }
-
-    linkData[domain].links.push({ title, url });
-    res.status(201).json({ message: 'Link added successfully.' });
 });
 
-// Fallback for all other requests. This is the catch-all route.
-// Using a regex to fix the PathError with older Express versions.
+// Corrected path to serve static files
+app.use(express.static(path.join(__dirname, '../../public')));
+
+// Fallback for all other routes to serve index.html
 app.get(/\/.*/, (req, res) => {
-    res.sendFile(path.join(__dirname, '../public/index.html'));
+    res.sendFile(path.join(__dirname, '../../public/index.html'));
 });
 
 // Start the server
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
 });
-
